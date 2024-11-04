@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <head>
+    <title>PM-Assistent</title>
+    <style>
+        @font-face {
+          font-family: "FK CARIAD";
+          src: url("font/FKCARIAD-Light.woff2") format("truetype");
+        }
+        body {
+            font-family: "FK CARIAD", sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
+            font-size: 0.85em;
+        }
+        .user-message {
+            color: blue;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        /* Spinner CSS */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #000;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+  </head>
+<body>
+    <div id="content"></div>
+    <input id="userInput" type="text" style="width: 100%" placeholder="Enter your chat message here">
+
+    <script src="js/marked.min.js"></script>
+    <script>
+        // Function to show the loading spinner
+        function showSpinner() {
+            const spinner = document.createElement('div');
+            spinner.classList.add('spinner');
+            spinner.id = 'spinner'; // Give it an ID for easy removal
+            document.getElementById('content').appendChild(spinner);
+        }
+
+        // Function to hide the loading spinner
+        function hideSpinner() {
+            const spinner = document.getElementById('spinner');
+            if (spinner) {
+                spinner.remove();
+            }
+        }
+
+        // Function to load content from the API based on URL and display it
+        async function loadContent(url) {
+            showSpinner(); // Show spinner when loading starts
+            try {
+                // Send request to the API
+                const response = await fetch(url);
+                
+                // Check if the response was successful
+                if (!response.ok) throw new Error('Network response was not ok');
+    
+                // Parse the response as JSON
+                const data = await response.json();
+
+                // Get the completion field content
+                const completionText = data.completion;
+    
+                // Create a new div and insert formatted content
+                const contentDiv = document.getElementById('content');
+                const newDiv = document.createElement('div');
+                newDiv.innerHTML = marked.parse(completionText);
+    
+                // Append the new div to the content element
+                contentDiv.appendChild(newDiv);
+    
+            } catch (error) {
+                console.error('Error fetching content:', error);
+            } finally {
+                hideSpinner(); // Hide spinner once content has loaded
+            }
+        }
+
+        // Event listener for user input
+        document.getElementById('userInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                // Get user input and clear the input field
+                const message = event.target.value;
+                
+                // Display the user input as fixed text in blue
+                const userMessageDiv = document.createElement('div');
+                userMessageDiv.classList.add('user-message');
+                userMessageDiv.textContent = message;
+                document.getElementById('content').appendChild(userMessageDiv);
+
+                // Clear and hide the input field
+                event.target.value = '';
+                event.target.style.display = 'none';
+                
+                // Call loadContent with the user's message as a query parameter
+                loadContent('ai/completion?message=' + encodeURIComponent(message));
+            }
+        });
+
+        // Run initial loadContent on page load
+        window.addEventListener('load', () => loadContent('ai/completion'));
+    </script>
+</body>
+</html>
